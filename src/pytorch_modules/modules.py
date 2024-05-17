@@ -19,29 +19,26 @@ class PermutoEncoding(torch.nn.Module):
 		self.concat_points=concat_points 
 		self.concat_points_scaling=concat_points_scaling
 
-		
+		self.reset()
 
-		#create hashmap values
-		lattice_values=torch.randn( capacity, nr_levels, nr_feat_per_level )*1e-5
-		lattice_values=lattice_values.permute(1,0,2).contiguous() #makes it nr_levels x capacity x nr_feat
-		self.lattice_values=torch.nn.Parameter(lattice_values.cuda())
-
-		#each levels of the hashamp can be randomly shifted so that we minimize collisions
+		# each levels of the hashamp can be randomly shifted so that we minimize collisions
 		if appply_random_shift_per_level:
 			random_shift_per_level=torch.randn( nr_levels, pos_dim)*10
 			self.random_shift_per_level=torch.nn.Parameter( random_shift_per_level.cuda() ) #we make it a parameter just so it gets saved when we checkpoint
 		else:
 			self.random_shift_per_level= torch.nn.Parameter( torch.empty((1)).cuda() )
 
-
-		#make a anneal window of all ones 
+		# make a anneal window of all ones 
 		self.anneal_window=torch.ones((nr_levels)).cuda()
 
-
-
-
-		#make the lattice wrapper
+		# make the lattice wrapper
 		self.fixed_params, self.lattice = self._make_lattice_wrapper()
+
+	def reset(self):
+		# create hashmap values
+		lattice_values=torch.randn(capacity, nr_levels, nr_feat_per_level) * 1e-5
+		lattice_values=lattice_values.permute(1,0,2).contiguous() # makes it nr_levels x capacity x nr_feat
+		self.lattice_values=torch.nn.Parameter(lattice_values.cuda())
 
 	def _make_lattice_wrapper(self):
 		fixed_params=_C.EncodingFixedParams(self.pos_dim, self.capacity, self.nr_levels, self.nr_feat_per_level, self.scale_per_level, self.random_shift_per_level, self.concat_points, self.concat_points_scaling)
