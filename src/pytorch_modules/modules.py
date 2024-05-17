@@ -36,13 +36,13 @@ class PermutoEncoding(torch.nn.Module):
 
 	def reset(self):
 		# create hashmap values
-		lattice_values=torch.randn(capacity, nr_levels, nr_feat_per_level) * 1e-5
-		lattice_values=lattice_values.permute(1,0,2).contiguous() # makes it nr_levels x capacity x nr_feat
-		self.lattice_values=torch.nn.Parameter(lattice_values.cuda())
+		lattice_values = torch.randn(self.capacity, self.nr_levels, self.nr_feat_per_level) * 1e-5
+		lattice_values = lattice_values.permute(1,0,2).contiguous() # makes it nr_levels x capacity x nr_feat
+		self.lattice_values = torch.nn.Parameter(lattice_values.cuda())
 
 	def _make_lattice_wrapper(self):
-		fixed_params=_C.EncodingFixedParams(self.pos_dim, self.capacity, self.nr_levels, self.nr_feat_per_level, self.scale_per_level, self.random_shift_per_level, self.concat_points, self.concat_points_scaling)
-		lattice=_C.EncodingWrapper.create(self.pos_dim, self.nr_feat_per_level, fixed_params)
+		fixed_params = _C.EncodingFixedParams(self.pos_dim, self.capacity, self.nr_levels, self.nr_feat_per_level, self.scale_per_level, self.random_shift_per_level, self.concat_points, self.concat_points_scaling)
+		lattice = _C.EncodingWrapper.create(self.pos_dim, self.nr_feat_per_level, fixed_params)
 		return fixed_params, lattice
 
 	def __getstate__(self):
@@ -63,21 +63,15 @@ class PermutoEncoding(torch.nn.Module):
 
 		nr_positions=positions.shape[0]
 
-
 		# positions=positions.transpose(0,1).contiguous().transpose(0,1)
-
-
 
 		if anneal_window is None:
 			anneal_window=self.anneal_window
 		else:
 			anneal_window=anneal_window.cuda()
 		
-
-		require_lattice_values_grad= self.lattice_values.requires_grad and torch.is_grad_enabled()
-		require_positions_grad=  positions.requires_grad and torch.is_grad_enabled()
-
-
+		require_lattice_values_grad = self.lattice_values.requires_grad and torch.is_grad_enabled()
+		require_positions_grad = positions.requires_grad and torch.is_grad_enabled()
 
 		sliced_values= PermutoEncodingFunc.apply(self.lattice, self.lattice_values, positions, anneal_window, require_lattice_values_grad, require_positions_grad)
 
